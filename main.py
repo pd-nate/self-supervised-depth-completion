@@ -174,7 +174,8 @@ def iterate(mode, args, loader, model, optimizer, logger, epoch):
         data_time = time.time() - start
 
         start = time.time()
-        pred = model(batch_data)
+        if mode != "val":
+            pred = model(batch_data)
         depth_loss, photometric_loss, smooth_loss, mask = 0, 0, 0, None
         if mode == 'train':
             # Loss 1: the direct depth supervision from ground truth label
@@ -229,6 +230,7 @@ def iterate(mode, args, loader, model, optimizer, logger, epoch):
 
         # measure accuracy and record loss
         with torch.no_grad():
+            pred = model(batch_data)
             mini_batch_size = next(iter(batch_data.values())).size(0)
             result = Result()
             if mode != 'test_prediction' and mode != 'test_completion':
@@ -250,6 +252,37 @@ def iterate(mode, args, loader, model, optimizer, logger, epoch):
     logger.conditional_summarize(mode, avg, is_best)
 
     return avg, is_best
+
+
+def train(args, model, optimizer, logger, epoch):
+
+    print("=> creating data loader: train ... ")
+    train_dataset = KittiDepth("train", args)
+    train_loader = torch.utils.data.DataLoader(
+        train_dataset,
+        batch_size=args.batch_size,
+        shuffle=True,
+        num_workers=args.workers,
+        pin_memory=True,
+        sampler=None,
+    )
+    print("\t==> train_loader size:{}".format(len(train_loader)))
+
+    iterate("train", args, train_loader, model, optimizer, logger, epoch)  # train for one epoch
+
+
+def val(args, model, logger, epoch):
+
+    print("=> creating data loader: val ... ")
+    val_dataset = KittiDepth("val", args)
+    val_loader = torch.utils.data.DataLoader(
+        val_dataset, batch_size=1, shuffle=False, num_workers=2, pin_memory=True
+    )  # set batch size to be 1 for validation
+    print("\t==> val_loader size:{}".format(len(val_loader)))
+
+    result, is_best = iterate("val", args, val_loader, model, None, logger, epoch)  # evaluate on validation set
+
+    return result, is_best
 
 
 def main():
@@ -302,24 +335,25 @@ def main():
     model = torch.nn.DataParallel(model)
 
     # Data loading code
-    print("=> creating data loaders ... ")
-    if not is_eval:
-        train_dataset = KittiDepth('train', args)
-        train_loader = torch.utils.data.DataLoader(train_dataset,
-                                                   batch_size=args.batch_size,
-                                                   shuffle=True,
-                                                   num_workers=args.workers,
-                                                   pin_memory=True,
-                                                   sampler=None)
-        print("\t==> train_loader size:{}".format(len(train_loader)))
-    val_dataset = KittiDepth('val', args)
-    val_loader = torch.utils.data.DataLoader(
-        val_dataset,
-        batch_size=1,
-        shuffle=False,
-        num_workers=2,
-        pin_memory=True)  # set batch size to be 1 for validation
-    print("\t==> val_loader size:{}".format(len(val_loader)))
+    # Edit: loaders are now made in train and val functions to clear memory
+    # between train and validation steps
+    # print("=> creating data loaders ... ")
+    # if not is_eval:
+    #     train_dataset = KittiDepth("train", args)
+    #     train_loader = torch.utils.data.DataLoader(
+    #         train_dataset,
+    #         batch_size=args.batch_size,
+    #         shuffle=True,
+    #         num_workers=args.workers,
+    #         pin_memory=True,
+    #         sampler=None,
+    #     )
+    #     print("\t==> train_loader size:{}".format(len(train_loader)))
+    # val_dataset = KittiDepth("val", args)
+    # val_loader = torch.utils.data.DataLoader(
+    #     val_dataset, batch_size=1, shuffle=False, num_workers=2, pin_memory=True
+    # )  # set batch size to be 1 for validation
+    # print("\t==> val_loader size:{}".format(len(val_loader)))
 
     # create backups and results folder
     logger = helper.logger(args)
@@ -329,18 +363,15 @@ def main():
 
     if is_eval:
         print("=> starting model evaluation ...")
-        result, is_best = iterate("val", args, val_loader, model, None, logger,
-                                  checkpoint['epoch'])
+        result, is_best = val(args, model, logger, checkpoint['epoch'])
         return
 
     # main loop
     print("=> starting main loop ...")
     for epoch in range(args.start_epoch, args.epochs):
         print("=> starting training epoch {} ..".format(epoch))
-        iterate("train", args, train_loader, model, optimizer, logger,
-                epoch)  # train for one epoch
-        result, is_best = iterate("val", args, val_loader, model, None, logger,
-                                  epoch)  # evaluate on validation set
+        train(args, model, optimizer, logger, epoch)  # train for one epoch
+        result, is_best = val(args, model, logger, epoch)  # evaluate on validation set
         helper.save_checkpoint({ # save checkpoint
             'epoch': epoch,
             'model': model.module.state_dict(),

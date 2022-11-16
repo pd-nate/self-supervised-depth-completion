@@ -56,8 +56,16 @@ def get_paths_and_transform(split, args):
 
         def get_rgb_paths(p):
             ps = p.split('/')
-            pnew = '/'.join([args.data_folder] + ['data_rgb'] + ps[-6:-4] +
-                            ps[-2:-1] + ['data'] + ps[-1:])
+            # pnew = '/'.join([args.data_folder] + ['data_rgb'] + ps[-6:-4] + ps[-2:-1] + ['data'] + ps[-1:])
+            last_p_split = ps[-1].split("\\")
+            pnew = "/".join(
+                [args.data_folder]
+                + ["data_rgb"]
+                + last_p_split[-6:-4]
+                + last_p_split[-2:-1]
+                + ["data"]
+                + last_p_split[-1:]
+            )
             return pnew
     elif split == "val":
         if args.val == "full":
@@ -72,8 +80,16 @@ def get_paths_and_transform(split, args):
             )
             def get_rgb_paths(p):
                 ps = p.split('/')
-                pnew = '/'.join(ps[:-7] +  
-                    ['data_rgb']+ps[-6:-4]+ps[-2:-1]+['data']+ps[-1:])
+                # pnew = '/'.join(ps[:-7] + ['data_rgb']+ps[-6:-4]+ps[-2:-1]+['data']+ps[-1:])
+                last_p_split = ps[-1].split("\\")
+                pnew = "/".join(
+                    [args.data_folder]
+                    + ["data_rgb"]
+                    + last_p_split[-6:-4]
+                    + last_p_split[-2:-1]
+                    + ["data"]
+                    + last_p_split[-1:]
+                )
                 return pnew
         elif args.val == "select":
             transform = no_transform
