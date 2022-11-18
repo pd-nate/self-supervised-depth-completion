@@ -37,7 +37,7 @@ class Args:
     val: str = "full"
     jitter: float = 0.1
     rank_metric: str = "rmse"
-    train_mode: str = "dense+photo"
+    train_mode: str = "dense"
     evaluate: str = ""
     cpu: bool = False
     output_dir: str = "s3://pd-internal-ml/nate/kitti/test3-221118"
