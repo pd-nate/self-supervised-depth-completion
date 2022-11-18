@@ -8,14 +8,12 @@ import torch.nn.parallel
 import torch.optim
 import torch.utils.data
 
-sys.path.append("/src/self-supervised-depth-completion")
-
-from dataloaders.kitti_loader import load_calib, oheight, owidth, input_options, KittiDepth
-from model import DepthCompletionNet
-from metrics import AverageMeter, Result
-import criteria
-import helper
-from inverse_warp import Intrinsics, homography_from
+from ssdc.dataloaders.kitti_loader import load_calib, oheight, owidth, input_options, KittiDepth
+from ssdc.model import DepthCompletionNet
+from ssdc.metrics import AverageMeter, Result
+from ssdc import criteria
+from ssdc import helper
+from ssdc.inverse_warp import Intrinsics, homography_from
 
 from paralleldomain.utilities import fsio
 
@@ -134,13 +132,13 @@ if args.use_pose:
 else:
     args.w1, args.w2 = 0, 0
 
-args.workers = 8
-args.layers = 18
-args.batch_size = 4
-args.train_mode = "dense+photo"
-args.input = "rgbd"
-args.data_folder = "s3://pd-field-uploads/nate/kitti/data_tiny/"
-args.output_dir = "s3://pd-field-uploads/nate/kitti/argo-test1/"
+# args.workers = 8
+# args.layers = 18
+# args.batch_size = 4
+# args.train_mode = "dense+photo"
+# args.input = "rgbd"
+# args.data_folder = "s3://pd-field-uploads/nate/kitti/data_tiny/"
+# args.output_dir = "s3://pd-field-uploads/nate/kitti/argo-test1/"
 
 print(args)
 
