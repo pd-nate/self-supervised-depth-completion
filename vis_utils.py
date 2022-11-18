@@ -7,6 +7,9 @@ from PIL import Image
 import numpy as np
 import cv2
 
+from paralleldomain.utilities import fsio
+from paralleldomain.utilities.any_path import AnyPath
+
 cmap = plt.cm.jet
 
 
@@ -45,14 +48,23 @@ def add_row(img_merge, row):
     return np.vstack([img_merge, row])
 
 
-def save_image(img_merge, filename):
-    image_to_write = cv2.cvtColor(img_merge, cv2.COLOR_RGB2BGR)
-    cv2.imwrite(filename, image_to_write)
+def save_image(img_merge, filename: AnyPath):
+    if not filename.is_cloud_path:
+        image_to_write = cv2.cvtColor(img_merge, cv2.COLOR_RGB2BGR)
+        cv2.imwrite(str(filename), image_to_write)
+    else:
+        fsio.write_png(img_merge, filename)
 
 
-def save_depth_as_uint16png(img, filename):
+def save_depth_as_uint16png(img, filename: AnyPath):
     img = (img * 256).astype('uint16')
-    cv2.imwrite(filename, img)
+    if not filename.is_cloud_path:
+        cv2.imwrite(filename, img)
+    else:
+        with TemporaryDirectory() as temp_dir:
+            fn = os.path.join(temp_dir, filename.name)
+            cv2.imwrite(fn, img)
+            fsio.copy_file(fn, filename)
 
 
 if ("DISPLAY" in os.environ):

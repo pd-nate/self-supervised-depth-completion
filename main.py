@@ -111,11 +111,18 @@ parser.add_argument(
     help='dense | sparse | photo | sparse+photo | dense+photo')
 parser.add_argument('-e', '--evaluate', default='', type=str, metavar='PATH')
 parser.add_argument('--cpu', action="store_true", help='run on cpu')
+parser.add_argument(
+    '-o',
+    '--output-dir',
+    default='../results',
+    type=str,
+    help="A local or cloud path to store results and checkpoints"
+)
 
 args = parser.parse_args()
 args.use_pose = ("photo" in args.train_mode)
 # args.pretrained = not args.no_pretrained
-args.result = os.path.join('..', 'results')
+args.result = args.output_dir
 args.use_rgb = ('rgb' in args.input) or args.use_pose
 args.use_d = 'd' in args.input
 args.use_g = 'g' in args.input

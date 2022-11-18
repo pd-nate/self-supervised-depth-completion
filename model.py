@@ -71,7 +71,7 @@ class DepthCompletionNet(nn.Module):
         assert (
             args.layers in [18, 34, 50, 101, 152]
         ), 'Only layers 18, 34, 50, 101, and 152 are defined, but got {}'.format(
-            layers)
+            args.layers)
         super(DepthCompletionNet, self).__init__()
         self.modality = args.input
 

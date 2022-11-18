@@ -5,6 +5,10 @@ import torch
 import csv
 import vis_utils
 from metrics import Result
+from tempfile import TemporaryDirectory
+
+from paralleldomain.utilities import fsio
+from paralleldomain.utilities.any_path import AnyPath
 
 fieldnames = [
     'epoch', 'rmse', 'photo', 'mae', 'irmse', 'imae', 'mse', 'absrel', 'lg10',
@@ -23,23 +27,23 @@ class logger:
 
         if not prepare:
             return
-        if not os.path.exists(output_directory):
-            os.makedirs(output_directory)
-        self.train_csv = os.path.join(output_directory, 'train.csv')
-        self.val_csv = os.path.join(output_directory, 'val.csv')
-        self.best_txt = os.path.join(output_directory, 'best.txt')
+        if not output_directory.is_cloud_path and not os.path.exists(str(output_directory)):
+            os.makedirs(str(output_directory))
+        self.train_csv = output_directory / 'train.csv'
+        self.val_csv = output_directory / 'val.csv'
+        self.best_txt = output_directory / 'best.txt'
 
         # backup the source code
         if args.resume == '':
             print("=> creating source code backup ...")
-            backup_directory = os.path.join(output_directory, "code_backup")
+            backup_directory = output_directory / "code_backup"
             self.backup_directory = backup_directory
             backup_source_code(backup_directory)
             # create new csv files with only header
-            with open(self.train_csv, 'w') as csvfile:
+            with self.train_csv.open('w') as csvfile:
                 writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
                 writer.writeheader()
-            with open(self.val_csv, 'w') as csvfile:
+            with self.val_csv.open('w') as csvfile:
                 writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
                 writer.writeheader()
             print("=> finished creating source code backup.")
@@ -80,61 +84,81 @@ class logger:
         elif split == "val":
             csvfile_name = self.val_csv
         elif split == "eval":
-            eval_filename = os.path.join(self.output_directory, 'eval.txt')
+            eval_filename = self.output_directory / 'eval.txt'
             self.save_single_txt(eval_filename, avg, epoch)
             return avg
         elif "test" in split:
             return avg
         else:
             raise ValueError("wrong split provided to logger")
-        with open(csvfile_name, 'a') as csvfile:
-            writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
-            writer.writerow({
-                'epoch': epoch,
-                'rmse': avg.rmse,
-                'photo': avg.photometric,
-                'mae': avg.mae,
-                'irmse': avg.irmse,
-                'imae': avg.imae,
-                'mse': avg.mse,
-                'silog': avg.silog,
-                'squared_rel': avg.squared_rel,
-                'absrel': avg.absrel,
-                'lg10': avg.lg10,
-                'delta1': avg.delta1,
-                'delta2': avg.delta2,
-                'delta3': avg.delta3,
-                'gpu_time': avg.gpu_time,
-                'data_time': avg.data_time
-            })
+        with TemporaryDirectory() as temp_dir:
+            temp_file = os.path.join(temp_dir, csvfile_name.name)
+            fsio.copy_file(csvfile_name, AnyPath(temp_file))
+            with open(temp_file, "a") as csvfile:
+                writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
+                writer.writerow({
+                    'epoch': epoch,
+                    'rmse': avg.rmse,
+                    'photo': avg.photometric,
+                    'mae': avg.mae,
+                    'irmse': avg.irmse,
+                    'imae': avg.imae,
+                    'mse': avg.mse,
+                    'silog': avg.silog,
+                    'squared_rel': avg.squared_rel,
+                    'absrel': avg.absrel,
+                    'lg10': avg.lg10,
+                    'delta1': avg.delta1,
+                    'delta2': avg.delta2,
+                    'delta3': avg.delta3,
+                    'gpu_time': avg.gpu_time,
+                    'data_time': avg.data_time
+                })
+            fsio.copy_file(AnyPath(temp_file), csvfile_name)
         return avg
 
-    def save_single_txt(self, filename, result, epoch):
-        with open(filename, 'w') as txtfile:
-            txtfile.write(
-                ("rank_metric={}\n" + "epoch={}\n" + "rmse={:.3f}\n" +
-                 "mae={:.3f}\n" + "silog={:.3f}\n" + "squared_rel={:.3f}\n" +
-                 "irmse={:.3f}\n" + "imae={:.3f}\n" + "mse={:.3f}\n" +
-                 "absrel={:.3f}\n" + "lg10={:.3f}\n" + "delta1={:.3f}\n" +
-                 "t_gpu={:.4f}").format(self.args.rank_metric, epoch,
-                                        result.rmse, result.mae, result.silog,
-                                        result.squared_rel, result.irmse,
-                                        result.imae, result.mse, result.absrel,
-                                        result.lg10, result.delta1,
-                                        result.gpu_time))
+    def save_single_txt(self, filename: AnyPath, result, epoch):
+        if not filename.is_cloud_path:
+            with open(str(filename), 'w') as txtfile:
+                txtfile.write(
+                    ("rank_metric={}\n" + "epoch={}\n" + "rmse={:.3f}\n" +
+                     "mae={:.3f}\n" + "silog={:.3f}\n" + "squared_rel={:.3f}\n" +
+                     "irmse={:.3f}\n" + "imae={:.3f}\n" + "mse={:.3f}\n" +
+                     "absrel={:.3f}\n" + "lg10={:.3f}\n" + "delta1={:.3f}\n" +
+                     "t_gpu={:.4f}").format(self.args.rank_metric, epoch,
+                                            result.rmse, result.mae, result.silog,
+                                            result.squared_rel, result.irmse,
+                                            result.imae, result.mse, result.absrel,
+                                            result.lg10, result.delta1,
+                                            result.gpu_time))
+        else:
+            with TemporaryDirectory() as temp_dir:
+                txtfile_path = os.path.join(temp_dir, filename.name)
+                with open(txtfile_path, "w") as txtfile:
+                    txtfile.write(
+                        ("rank_metric={}\n" + "epoch={}\n" + "rmse={:.3f}\n" +
+                         "mae={:.3f}\n" + "silog={:.3f}\n" + "squared_rel={:.3f}\n" +
+                         "irmse={:.3f}\n" + "imae={:.3f}\n" + "mse={:.3f}\n" +
+                         "absrel={:.3f}\n" + "lg10={:.3f}\n" + "delta1={:.3f}\n" +
+                         "t_gpu={:.4f}").format(self.args.rank_metric, epoch,
+                                                result.rmse, result.mae, result.silog,
+                                                result.squared_rel, result.irmse,
+                                                result.imae, result.mse, result.absrel,
+                                                result.lg10, result.delta1,
+                                                result.gpu_time))
+                fsio.copy_file(AnyPath(txtfile_path), filename)
 
     def save_best_txt(self, result, epoch):
         self.save_single_txt(self.best_txt, result, epoch)
 
     def _get_img_comparison_name(self, mode, epoch, is_best=False):
         if mode == 'eval':
-            return self.output_directory + '/comparison_eval.png'
+            return self.output_directory / 'comparison_eval.png'
         if mode == 'val':
             if is_best:
-                return self.output_directory + '/comparison_best.png'
+                return self.output_directory / 'comparison_best.png'
             else:
-                return self.output_directory + '/comparison_' + str(
-                    epoch) + '.png'
+                return self.output_directory / ('comparison_' + str(epoch) + '.png')
 
     def conditional_save_img_comparison(self, mode, i, ele, pred, epoch):
         # save 8 images for visualization
@@ -208,10 +232,13 @@ ignore_hidden = shutil.ignore_patterns(".", "..", ".git*", "*pycache*",
                                        "*build", "*.fuse*", "*_drive_*")
 
 
-def backup_source_code(backup_directory):
-    if os.path.exists(backup_directory):
-        shutil.rmtree(backup_directory)
-    shutil.copytree('.', backup_directory, ignore=ignore_hidden)
+def backup_source_code(backup_directory: AnyPath):
+    if not backup_directory.is_cloud_path:
+        if backup_directory.exists():
+            shutil.rmtree(str(backup_directory))
+        shutil.copytree('.', str(backup_directory), ignore=ignore_hidden)
+    else:
+        pass
 
 
 def adjust_learning_rate(lr_init, optimizer, epoch):
@@ -222,18 +249,25 @@ def adjust_learning_rate(lr_init, optimizer, epoch):
     return lr
 
 
-def save_checkpoint(state, is_best, epoch, output_directory):
-    checkpoint_filename = os.path.join(output_directory,
-                                       'checkpoint-' + str(epoch) + '.pth.tar')
-    torch.save(state, checkpoint_filename)
+def save_checkpoint(state, is_best, epoch, output_directory: AnyPath):
+    checkpoint_filename = output_directory / ('checkpoint-' + str(epoch) + '.pth.tar')
+    if output_directory.is_cloud_path:
+        with TemporaryDirectory() as temp_dir:
+            chkpt_filename = os.path.join(temp_dir, 'checkpoint-' + str(epoch) + '.pth.tar')
+            torch.save(state, chkpt_filename)
+            fsio.copy_file(AnyPath(chkpt_filename), checkpoint_filename)
+    else:
+        torch.save(state, str(checkpoint_filename))
     if is_best:
-        best_filename = os.path.join(output_directory, 'model_best.pth.tar')
-        shutil.copyfile(checkpoint_filename, best_filename)
+        best_filename = output_directory / 'model_best.pth.tar'
+        fsio.copy_file(checkpoint_filename, best_filename)
     if epoch > 0:
-        prev_checkpoint_filename = os.path.join(
-            output_directory, 'checkpoint-' + str(epoch - 1) + '.pth.tar')
-        if os.path.exists(prev_checkpoint_filename):
-            os.remove(prev_checkpoint_filename)
+        prev_checkpoint_filename = output_directory / ('checkpoint-' + str(epoch - 1) + '.pth.tar')
+        if prev_checkpoint_filename.exists():
+            if not prev_checkpoint_filename.is_cloud_path:
+                os.remove(str(prev_checkpoint_filename))
+            else:
+                prev_checkpoint_filename.rm()
 
 
 def get_folder_name(args):
@@ -243,10 +277,10 @@ def get_folder_name(args):
                                                args.w2)
     else:
         prefix = "mode={}.".format(args.train_mode)
-    return os.path.join(args.result,
-        prefix + 'input={}.resnet{}.criterion={}.lr={}.bs={}.wd={}.pretrained={}.jitter={}.time={}'.
-        format(args.input, args.layers, args.criterion, \
-            args.lr, args.batch_size, args.weight_decay, \
+    return AnyPath(args.result) / (prefix
+        + 'input={}.resnet{}.criterion={}.lr={}.bs={}.wd={}.pretrained={}.jitter={}.time={}'.
+        format(args.input, args.layers, args.criterion,
+            args.lr, args.batch_size, args.weight_decay,
             args.pretrained, args.jitter, current_time
             ))
 
