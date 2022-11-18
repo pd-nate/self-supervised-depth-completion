@@ -14,6 +14,8 @@ import criteria
 import helper
 from inverse_warp import Intrinsics, homography_from
 
+from paralleldomain.utilities import fsio
+
 parser = argparse.ArgumentParser(description='Sparse-to-Dense')
 parser.add_argument('-w',
                     '--workers',
@@ -291,10 +293,16 @@ def main():
     is_eval = False
     if args.evaluate:
         args_new = args
-        if os.path.isfile(args.evaluate):
+        eval_path = AnyPath(args.evaluate)
+        if eval_path.exists():
             print("=> loading checkpoint '{}' ... ".format(args.evaluate),
                   end='')
-            checkpoint = torch.load(args.evaluate, map_location=device)
+            if eval_path.is_cloud_path:
+                with TemporaryDirectory() as temp_dir:
+                    chkpt_path = fsio.copy_file(eval_path, temp_dir)
+                    checkpoint = torch.load(str(chkpt_path), map_location=device)
+            else:
+                checkpoint = torch.load(args.evaluate, map_location=device)
             args = checkpoint['args']
             args.data_folder = args_new.data_folder
             args.val = args_new.val
@@ -305,10 +313,16 @@ def main():
             return
     elif args.resume:  # optionally resume from a checkpoint
         args_new = args
-        if os.path.isfile(args.resume):
+        resume_path = AnyPath(args.resume)
+        if resume_path.exists():
             print("=> loading checkpoint '{}' ... ".format(args.resume),
                   end='')
-            checkpoint = torch.load(args.resume, map_location=device)
+            if resume_path.is_cloud_path:
+                with TemporaryDirectory() as temp_dir:
+                    chkpt_path = fsio.copy_file(resume_path, temp_dir)
+                    checkpoint = torch.load(chkpt_path, map_location=device)
+            else:
+                checkpoint = torch.load(args.resume, map_location=device)
             args.start_epoch = checkpoint['epoch'] + 1
             args.data_folder = args_new.data_folder
             args.val = args_new.val

@@ -5,12 +5,16 @@ import fnmatch  # pattern matching
 import numpy as np
 from numpy import linalg as LA
 from random import choice
+from io import BytesIO
 from PIL import Image
 import torch
 import torch.utils.data as data
 import cv2
 from dataloaders import transforms
 from dataloaders.pose_estimator import get_pose_pnp
+
+from paralleldomain.utilities import fsio
+from paralleldomain.utilities.any_path import AnyPath
 
 input_options = ['d', 'rgb', 'rgbd', 'g', 'gd']
 
@@ -31,111 +35,75 @@ def load_calib():
     # note: we will take the center crop of the images during augmentation
     # that changes the optical centers, but not focal lengths
     K[0, 2] = K[
-        0,
-        2] - 13  # from width = 1242 to 1216, with a 13-pixel cut on both sides
+                  0,
+                  2] - 13  # from width = 1242 to 1216, with a 13-pixel cut on both sides
     K[1, 2] = K[
-        1,
-        2] - 11.5  # from width = 375 to 352, with a 11.5-pixel cut on both sides
+                  1,
+                  2] - 11.5  # from width = 375 to 352, with a 11.5-pixel cut on both sides
     return K
 
 
 def get_paths_and_transform(split, args):
+    data_path = AnyPath(args.data_folder)
     assert (args.use_d or args.use_rgb
             or args.use_g), 'no proper input selected'
 
     if split == "train":
         transform = train_transform
-        glob_d = os.path.join(
-            args.data_folder,
-            'data_depth_velodyne/train/*_sync/proj_depth/velodyne_raw/image_0[2,3]/*.png'
-        )
-        glob_gt = os.path.join(
-            args.data_folder,
-            'data_depth_annotated/train/*_sync/proj_depth/groundtruth/image_0[2,3]/*.png'
-        )
+        glob_d = data_path.glob('data_depth_velodyne/train/*_sync/proj_depth/velodyne_raw/image_0[2,3]/*.png')
+        glob_gt = data_path.glob('data_depth_annotated/train/*_sync/proj_depth/groundtruth/image_0[2,3]/*.png')
 
         def get_rgb_paths(p):
-            ps = p.split('/')
-            # pnew = '/'.join([args.data_folder] + ['data_rgb'] + ps[-6:-4] + ps[-2:-1] + ['data'] + ps[-1:])
-            last_p_split = ps[-1].split("\\")
-            pnew = "/".join(
-                [args.data_folder]
-                + ["data_rgb"]
-                + last_p_split[-6:-4]
-                + last_p_split[-2:-1]
-                + ["data"]
-                + last_p_split[-1:]
-            )
+            ps = p.parts
+            pnew = data_path / "data_rgb" / "/".join(ps[-6:-4]) / "/".join(ps[-2:-1]) / "data" / "/".join(ps[-1:])
             return pnew
+
     elif split == "val":
         if args.val == "full":
             transform = val_transform
-            glob_d = os.path.join(
-                args.data_folder,
-                'data_depth_velodyne/val/*_sync/proj_depth/velodyne_raw/image_0[2,3]/*.png'
-            )
-            glob_gt = os.path.join(
-                args.data_folder,
-                'data_depth_annotated/val/*_sync/proj_depth/groundtruth/image_0[2,3]/*.png'
-            )
+            glob_d = data_path.glob('data_depth_velodyne/val/*_sync/proj_depth/velodyne_raw/image_0[2,3]/*.png')
+            glob_gt = data_path.glob('data_depth_annotated/val/*_sync/proj_depth/groundtruth/image_0[2,3]/*.png')
+
             def get_rgb_paths(p):
-                ps = p.split('/')
-                # pnew = '/'.join(ps[:-7] + ['data_rgb']+ps[-6:-4]+ps[-2:-1]+['data']+ps[-1:])
-                last_p_split = ps[-1].split("\\")
-                pnew = "/".join(
-                    [args.data_folder]
-                    + ["data_rgb"]
-                    + last_p_split[-6:-4]
-                    + last_p_split[-2:-1]
-                    + ["data"]
-                    + last_p_split[-1:]
-                )
+                ps = p.parts
+                pnew = data_path / "data_rgb" / "/".join(ps[-6:-4]) / "/".join(ps[-2:-1]) / "data" / "/".join(ps[-1:])
                 return pnew
+
         elif args.val == "select":
             transform = no_transform
-            glob_d = os.path.join(
-                args.data_folder,
-                "depth_selection/val_selection_cropped/velodyne_raw/*.png")
-            glob_gt = os.path.join(
-                args.data_folder,
-                "depth_selection/val_selection_cropped/groundtruth_depth/*.png"
-            )
+            glob_d = data_path.glob("depth_selection/val_selection_cropped/velodyne_raw/*.png")
+            glob_gt = data_path.glob("depth_selection/val_selection_cropped/groundtruth_depth/*.png")
+
             def get_rgb_paths(p):
-                return p.replace("groundtruth_depth","image")
+                return AnyPath(str(p).replace("groundtruth_depth", "image"))
+
     elif split == "test_completion":
         transform = no_transform
-        glob_d = os.path.join(
-            args.data_folder,
-            "depth_selection/test_depth_completion_anonymous/velodyne_raw/*.png"
-        )
-        glob_gt = None  #"test_depth_completion_anonymous/"
-        glob_rgb = os.path.join(
-            args.data_folder,
-            "depth_selection/test_depth_completion_anonymous/image/*.png")
+        glob_d = data_path.glob("depth_selection/test_depth_completion_anonymous/velodyne_raw/*.png")
+        glob_gt = None  # "test_depth_completion_anonymous/"
+        glob_rgb = data_path.glob("depth_selection/test_depth_completion_anonymous/image/*.png")
     elif split == "test_prediction":
         transform = no_transform
         glob_d = None
-        glob_gt = None  #"test_depth_completion_anonymous/"
-        glob_rgb = os.path.join(
-            args.data_folder,
-            "depth_selection/test_depth_prediction_anonymous/image/*.png")
+        glob_gt = None  # "test_depth_completion_anonymous/"
+        glob_rgb = data_path.glob("depth_selection/test_depth_prediction_anonymous/image/*.png")
     else:
         raise ValueError("Unrecognized split " + str(split))
 
     if glob_gt is not None:
         # train or val-full or val-select
-        paths_d = sorted(glob.glob(glob_d)) 
-        paths_gt = sorted(glob.glob(glob_gt)) 
+        paths_d = sorted(glob_d)
+        paths_gt = sorted(glob_gt)
         paths_rgb = [get_rgb_paths(p) for p in paths_gt]
-    else:  
+    else:
         # test only has d or rgb
-        paths_rgb = sorted(glob.glob(glob_rgb))
+        paths_rgb = sorted(glob_rgb)
         paths_gt = [None] * len(paths_rgb)
         if split == "test_prediction":
             paths_d = [None] * len(
                 paths_rgb)  # test_prediction has no sparse depth
         else:
-            paths_d = sorted(glob.glob(glob_d))
+            paths_d = sorted(glob_d)
 
     if len(paths_d) == 0 and len(paths_rgb) == 0 and len(paths_gt) == 0:
         raise (RuntimeError("Found 0 images under {}".format(glob_gt)))
@@ -153,8 +121,9 @@ def get_paths_and_transform(split, args):
 
 
 def rgb_read(filename):
-    assert os.path.exists(filename), "file not found: {}".format(filename)
-    img_file = Image.open(filename)
+    assert filename.exists(), "file not found: {}".format(filename)
+    with filename.open(mode="rb") as fp:
+        img_file = Image.open(BytesIO(fp.read()))
     # rgb_png = np.array(img_file, dtype=float) / 255.0 # scale pixels to the range [0,1]
     rgb_png = np.array(img_file, dtype='uint8')  # in the range [0,255]
     img_file.close()
@@ -165,13 +134,14 @@ def depth_read(filename):
     # loads depth map D from png file
     # and returns it as a numpy array,
     # for details see readme.txt
-    assert os.path.exists(filename), "file not found: {}".format(filename)
-    img_file = Image.open(filename)
+    assert filename.exists(), "file not found: {}".format(str(filename))
+    with filename.open(mode="rb") as fp:
+        img_file = Image.open(BytesIO(fp.read()))
     depth_png = np.array(img_file, dtype=int)
     img_file.close()
     # make sure we have a proper 16bit depth map here.. not 8bit!
     assert np.max(depth_png) > 255, \
-        "np.max(depth_png)={}, path={}".format(np.max(depth_png),filename)
+        "np.max(depth_png)={}, path={}".format(np.max(depth_png), filename)
 
     depth = depth_png.astype(np.float) / 256.
     # depth[depth_png == 0] = -1.
@@ -294,6 +264,7 @@ def get_rgb_near(path, args):
 class KittiDepth(data.Dataset):
     """A data loader for the Kitti dataset
     """
+
     def __init__(self, split, args):
         self.args = args
         self.split = split
@@ -332,8 +303,8 @@ class KittiDepth(data.Dataset):
                 r_mat = np.eye(3)
 
         rgb, gray = handle_gray(rgb, self.args)
-        candidates = {"rgb":rgb, "d":sparse, "gt":target, \
-            "g":gray, "r_mat":r_mat, "t_vec":t_vec, "rgb_near":rgb_near}
+        candidates = {"rgb": rgb, "d": sparse, "gt": target, \
+                      "g": gray, "r_mat": r_mat, "t_vec": t_vec, "rgb_near": rgb_near}
         items = {
             key: to_float_tensor(val)
             for key, val in candidates.items() if val is not None
