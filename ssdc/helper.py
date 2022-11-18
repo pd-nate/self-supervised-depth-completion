@@ -1,10 +1,11 @@
 import math
-import os, time
+import os
+import time
 import shutil
 import torch
 import csv
-import vis_utils
-from metrics import Result
+from ssdc import vis_utils
+from ssdc.metrics import Result
 from tempfile import TemporaryDirectory
 
 from paralleldomain.utilities import fsio

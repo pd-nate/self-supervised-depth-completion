@@ -10,8 +10,8 @@ from PIL import Image
 import torch
 import torch.utils.data as data
 import cv2
-from dataloaders import transforms
-from dataloaders.pose_estimator import get_pose_pnp
+from ssdc.dataloaders import transforms
+from ssdc.dataloaders.pose_estimator import get_pose_pnp
 
 from paralleldomain.utilities import fsio
 from paralleldomain.utilities.any_path import AnyPath
