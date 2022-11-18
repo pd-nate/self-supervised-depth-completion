@@ -34,7 +34,7 @@ class Args:
     input: str = "rgbd"
     layers: int = 34
     pretrained: bool = False
-    val: str = "select"
+    val: str = "full"
     jitter: float = 0.1
     rank_metric: str = "rmse"
     train_mode: str = "dense"
