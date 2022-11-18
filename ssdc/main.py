@@ -25,7 +25,7 @@ class Args:
     epochs: int = 2
     start_epoch: int = 0
     criterion: str = "l2"
-    batch_size: int = 4
+    batch_size: int = 1
     lr: float = 1e-5
     weight_decay: float = 0
     print_freq: int = 10
