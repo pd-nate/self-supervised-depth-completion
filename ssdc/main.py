@@ -30,7 +30,7 @@ class Args:
     weight_decay: float = 0
     print_freq: int = 10
     resume: str = ""
-    data_folder: str = "s3://pd-internal-ml/nate/kitti/data_small/"
+    data_folder: str = "s3://pd-internal-ml/nate/kitti/data_tiny/"
     input: str = "rgbd"
     layers: int = 34
     pretrained: bool = False
@@ -40,7 +40,7 @@ class Args:
     train_mode: str = "dense+photo"
     evaluate: str = ""
     cpu: bool = False
-    output_dir: str = "s3://pd-internal-ml/nate/kitti/train1-221118"
+    output_dir: str = "s3://pd-internal-ml/nate/kitti/test3-221118"
 
 
 # parser = argparse.ArgumentParser(description='Sparse-to-Dense')
