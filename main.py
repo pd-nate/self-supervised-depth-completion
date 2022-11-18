@@ -1,11 +1,14 @@
 import argparse
 import os
+import sys
 import time
 
 import torch
 import torch.nn.parallel
 import torch.optim
 import torch.utils.data
+
+sys.path.append("./self-supervised-depth-completion")
 
 from dataloaders.kitti_loader import load_calib, oheight, owidth, input_options, KittiDepth
 from model import DepthCompletionNet
