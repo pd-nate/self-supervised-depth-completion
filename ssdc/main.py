@@ -22,7 +22,7 @@ from paralleldomain.utilities import fsio
 @dataclass
 class Args:
     workers: int = 8
-    epochs: int = 2
+    epochs: int = 11
     start_epoch: int = 0
     criterion: str = "l2"
     batch_size: int = 4
@@ -40,7 +40,7 @@ class Args:
     train_mode: str = "dense+photo"
     evaluate: str = ""
     cpu: bool = False
-    output_dir: str = "s3://pd-internal-ml/nate/kitti/test2-221118"
+    output_dir: str = "s3://pd-internal-ml/nate/kitti/train1-221118"
 
 
 # parser = argparse.ArgumentParser(description='Sparse-to-Dense')
