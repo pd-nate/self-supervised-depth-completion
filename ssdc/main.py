@@ -40,7 +40,7 @@ class Args:
     train_mode: str = "dense+photo"
     evaluate: str = ""
     cpu: bool = False
-    output_dir: str = "s3://paralleldomain-pipeline/artifacts/6fe6bb76-dcd8-42ee-b8ae-df2e5ee5f0ed/"
+    output_dir: str = "s3://pd-internal-ml/nate/kitti/test1-221118"
 
 
 # parser = argparse.ArgumentParser(description='Sparse-to-Dense')
