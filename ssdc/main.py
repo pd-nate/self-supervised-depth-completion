@@ -132,13 +132,13 @@ if args.use_pose:
 else:
     args.w1, args.w2 = 0, 0
 
-# args.workers = 8
-# args.layers = 18
-# args.batch_size = 4
-# args.train_mode = "dense+photo"
-# args.input = "rgbd"
-# args.data_folder = "s3://pd-field-uploads/nate/kitti/data_tiny/"
-# args.output_dir = "s3://pd-field-uploads/nate/kitti/argo-test1/"
+args.workers = 8
+args.layers = 18
+args.batch_size = 4
+args.train_mode = "dense+photo"
+args.input = "rgbd"
+args.data_folder = "s3://pd-field-uploads/nate/kitti/data_tiny/"
+args.output_dir = "s3://pd-field-uploads/nate/kitti/argo-test1/"
 
 print(args)
 
