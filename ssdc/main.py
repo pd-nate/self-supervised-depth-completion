@@ -25,7 +25,7 @@ class Args:
     epochs: int = 2
     start_epoch: int = 0
     criterion: str = "l2"
-    batch_size: int = 1
+    batch_size: int = 4
     lr: float = 1e-5
     weight_decay: float = 0
     print_freq: int = 10
@@ -34,7 +34,7 @@ class Args:
     input: str = "rgbd"
     layers: int = 34
     pretrained: bool = False
-    val: str = "full"
+    val: str = "select"
     jitter: float = 0.1
     rank_metric: str = "rmse"
     train_mode: str = "dense"
