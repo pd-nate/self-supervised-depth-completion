@@ -23,7 +23,7 @@ def load_calib():
     """
     Temporarily hardcoding the calibration matrix using calib file from 2011_09_26
     """
-    calib = open("dataloaders/calib_cam_to_cam.txt", "r")
+    calib = open(os.path.join(str(AnyPath(__file__).parent), "calib_cam_to_cam.txt"), "r")
     lines = calib.readlines()
     P_rect_line = lines[25]
 
@@ -120,7 +120,7 @@ def get_paths_and_transform(split, args):
     return paths, transform
 
 
-def rgb_read(filename):
+def rgb_read(filename: AnyPath) -> np.array:
     assert filename.exists(), "file not found: {}".format(filename)
     with filename.open(mode="rb") as fp:
         img_file = Image.open(BytesIO(fp.read()))
@@ -232,14 +232,14 @@ def get_rgb_near(path, args):
     assert path is not None, "path is None"
 
     def extract_frame_id(filename):
-        head, tail = os.path.split(filename)
+        head, tail = os.path.split(str(filename))
         number_string = tail[0:tail.find('.')]
         number = int(number_string)
         return head, number
 
     def get_nearby_filename(filename, new_id):
-        head, _ = os.path.split(filename)
-        new_filename = os.path.join(head, '%010d.png' % new_id)
+        head, _ = os.path.split(str(filename))
+        new_filename = AnyPath(head) / ('%010d.png' % new_id)
         return new_filename
 
     head, number = extract_frame_id(path)
@@ -252,7 +252,7 @@ def get_rgb_near(path, args):
     while True:
         random_offset = choice(candidates)
         path_near = get_nearby_filename(path, number + random_offset)
-        if os.path.exists(path_near):
+        if path_near.exists():
             break
         assert count < 20, "cannot find a nearby frame in 20 trials for {}".format(
             path)

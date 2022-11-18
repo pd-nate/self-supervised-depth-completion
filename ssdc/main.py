@@ -2,6 +2,7 @@ import argparse
 import os
 import sys
 import time
+from dataclasses import dataclass
 
 import torch
 import torch.nn.parallel
@@ -17,110 +18,138 @@ from ssdc.inverse_warp import Intrinsics, homography_from
 
 from paralleldomain.utilities import fsio
 
-parser = argparse.ArgumentParser(description='Sparse-to-Dense')
-parser.add_argument('-w',
-                    '--workers',
-                    default=4,
-                    type=int,
-                    metavar='N',
-                    help='number of data loading workers (default: 4)')
-parser.add_argument('--epochs',
-                    default=11,
-                    type=int,
-                    metavar='N',
-                    help='number of total epochs to run (default: 11)')
-parser.add_argument('--start-epoch',
-                    default=0,
-                    type=int,
-                    metavar='N',
-                    help='manual epoch number (useful on restarts)')
-parser.add_argument('-c',
-                    '--criterion',
-                    metavar='LOSS',
-                    default='l2',
-                    choices=criteria.loss_names,
-                    help='loss function: | '.join(criteria.loss_names) +
-                    ' (default: l2)')
-parser.add_argument('-b',
-                    '--batch-size',
-                    default=1,
-                    type=int,
-                    help='mini-batch size (default: 1)')
-parser.add_argument('--lr',
-                    '--learning-rate',
-                    default=1e-5,
-                    type=float,
-                    metavar='LR',
-                    help='initial learning rate (default 1e-5)')
-parser.add_argument('--weight-decay',
-                    '--wd',
-                    default=0,
-                    type=float,
-                    metavar='W',
-                    help='weight decay (default: 0)')
-parser.add_argument('--print-freq',
-                    '-p',
-                    default=10,
-                    type=int,
-                    metavar='N',
-                    help='print frequency (default: 10)')
-parser.add_argument('--resume',
-                    default='',
-                    type=str,
-                    metavar='PATH',
-                    help='path to latest checkpoint (default: none)')
-parser.add_argument('--data-folder',
-                    default='../data',
-                    type=str,
-                    metavar='PATH',
-                    help='data folder (default: none)')
-parser.add_argument('-i',
-                    '--input',
-                    type=str,
-                    default='gd',
-                    choices=input_options,
-                    help='input: | '.join(input_options))
-parser.add_argument('-l',
-                    '--layers',
-                    type=int,
-                    default=34,
-                    help='use 16 for sparse_conv; use 18 or 34 for resnet')
-parser.add_argument('--pretrained',
-                    action="store_true",
-                    help='use ImageNet pre-trained weights')
-parser.add_argument('--val',
-                    type=str,
-                    default="select",
-                    choices=["select", "full"],
-                    help='full or select validation set')
-parser.add_argument('--jitter',
-                    type=float,
-                    default=0.1,
-                    help='color jitter for images')
-parser.add_argument(
-    '--rank-metric',
-    type=str,
-    default='rmse',
-    choices=[m for m in dir(Result()) if not m.startswith('_')],
-    help='metrics for which best result is sbatch_datacted')
-parser.add_argument(
-    '-m',
-    '--train-mode',
-    type=str,
-    default="dense",
-    choices=["dense", "sparse", "photo", "sparse+photo", "dense+photo"],
-    help='dense | sparse | photo | sparse+photo | dense+photo')
-parser.add_argument('-e', '--evaluate', default='', type=str, metavar='PATH')
-parser.add_argument('--cpu', action="store_true", help='run on cpu')
-parser.add_argument(
-    '-o',
-    '--output-dir',
-    default='../results',
-    type=str,
-    help="A local or cloud path to store results and checkpoints"
-)
 
-args = parser.parse_args()
+@dataclass
+class Args:
+    workers: int = 8
+    epochs: int = 2
+    start_epoch: int = 0
+    criterion: str = "l2"
+    batch_size: int = 4
+    lr: float = 1e-5
+    weight_decay: float = 0
+    print_freq: int = 10
+    resume: str = ""
+    data_folder: str = "s3://pd-field-uploads/nate/kitti/data_tiny"
+    input: str = "rgbd"
+    layers: int = 34
+    pretrained: bool = False
+    val: str = "full"
+    jitter: float = 0.1
+    rank_metric: str = "rmse"
+    train_mode: str = "dense+photo"
+    evaluate: str = ""
+    cpu: bool = False
+    output_dir: str = "s3://pd-field-uploads/nate/kitti/test_output4_221118"
+
+
+# parser = argparse.ArgumentParser(description='Sparse-to-Dense')
+# parser.add_argument('-w',
+#                     '--workers',
+#                     default=4,
+#                     type=int,
+#                     metavar='N',
+#                     help='number of data loading workers (default: 4)')
+# parser.add_argument('--epochs',
+#                     default=11,
+#                     type=int,
+#                     metavar='N',
+#                     help='number of total epochs to run (default: 11)')
+# parser.add_argument('--start-epoch',
+#                     default=0,
+#                     type=int,
+#                     metavar='N',
+#                     help='manual epoch number (useful on restarts)')
+# parser.add_argument('-c',
+#                     '--criterion',
+#                     metavar='LOSS',
+#                     default='l2',
+#                     choices=criteria.loss_names,
+#                     help='loss function: | '.join(criteria.loss_names) +
+#                     ' (default: l2)')
+# parser.add_argument('-b',
+#                     '--batch-size',
+#                     default=1,
+#                     type=int,
+#                     help='mini-batch size (default: 1)')
+# parser.add_argument('--lr',
+#                     '--learning-rate',
+#                     default=1e-5,
+#                     type=float,
+#                     metavar='LR',
+#                     help='initial learning rate (default 1e-5)')
+# parser.add_argument('--weight-decay',
+#                     '--wd',
+#                     default=0,
+#                     type=float,
+#                     metavar='W',
+#                     help='weight decay (default: 0)')
+# parser.add_argument('--print-freq',
+#                     '-p',
+#                     default=10,
+#                     type=int,
+#                     metavar='N',
+#                     help='print frequency (default: 10)')
+# parser.add_argument('--resume',
+#                     default='',
+#                     type=str,
+#                     metavar='PATH',
+#                     help='path to latest checkpoint (default: none)')
+# parser.add_argument('--data-folder',
+#                     default='../data',
+#                     type=str,
+#                     metavar='PATH',
+#                     help='data folder (default: none)')
+# parser.add_argument('-i',
+#                     '--input',
+#                     type=str,
+#                     default='gd',
+#                     choices=input_options,
+#                     help='input: | '.join(input_options))
+# parser.add_argument('-l',
+#                     '--layers',
+#                     type=int,
+#                     default=34,
+#                     help='use 16 for sparse_conv; use 18 or 34 for resnet')
+# parser.add_argument('--pretrained',
+#                     action="store_true",
+#                     help='use ImageNet pre-trained weights')
+# parser.add_argument('--val',
+#                     type=str,
+#                     default="select",
+#                     choices=["select", "full"],
+#                     help='full or select validation set')
+# parser.add_argument('--jitter',
+#                     type=float,
+#                     default=0.1,
+#                     help='color jitter for images')
+# parser.add_argument(
+#     '--rank-metric',
+#     type=str,
+#     default='rmse',
+#     choices=[m for m in dir(Result()) if not m.startswith('_')],
+#     help='metrics for which best result is sbatch_datacted')
+# parser.add_argument(
+#     '-m',
+#     '--train-mode',
+#     type=str,
+#     default="dense",
+#     choices=["dense", "sparse", "photo", "sparse+photo", "dense+photo"],
+#     help='dense | sparse | photo | sparse+photo | dense+photo')
+# parser.add_argument('-e', '--evaluate', default='', type=str, metavar='PATH')
+# parser.add_argument('--cpu', action="store_true", help='run on cpu')
+# parser.add_argument(
+#     '-o',
+#     '--output-dir',
+#     default='../results',
+#     type=str,
+#     help="A local or cloud path to store results and checkpoints"
+# )
+#
+# args = parser.parse_args()
+
+
+args = Args()
 args.use_pose = ("photo" in args.train_mode)
 # args.pretrained = not args.no_pretrained
 args.result = args.output_dir
@@ -132,13 +161,13 @@ if args.use_pose:
 else:
     args.w1, args.w2 = 0, 0
 
-args.workers = 8
-args.layers = 18
-args.batch_size = 4
-args.train_mode = "dense+photo"
-args.input = "rgbd"
-args.data_folder = "s3://pd-field-uploads/nate/kitti/data_tiny/"
-args.output_dir = "s3://pd-field-uploads/nate/kitti/argo-test1/"
+# args.workers = 8
+# args.layers = 18
+# args.batch_size = 4
+# args.train_mode = "dense+photo"
+# args.input = "rgbd"
+# args.data_folder = "s3://pd-field-uploads/nate/kitti/data_tiny/"
+# args.output_dir = "s3://pd-field-uploads/nate/kitti/argo-test1/"
 
 print(args)
 
