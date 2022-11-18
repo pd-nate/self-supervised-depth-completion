@@ -30,7 +30,7 @@ class Args:
     weight_decay: float = 0
     print_freq: int = 10
     resume: str = ""
-    data_folder: str = "s3://pd-internal-ml/nate/kitti/data_tiny/"
+    data_folder: str = "s3://pd-internal-ml/nate/kitti/data_small/"
     input: str = "rgbd"
     layers: int = 34
     pretrained: bool = False
