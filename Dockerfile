@@ -1,6 +1,6 @@
 ARG PYTORCH="1.13.0"
-ARG CUDA="11.7"
-ARG CUDNN="8.5.0"
+ARG CUDA="11.6"
+ARG CUDNN="8"
 
 FROM pytorch/pytorch:${PYTORCH}-cuda${CUDA}-cudnn${CUDNN}-devel as base
 
@@ -17,6 +17,6 @@ RUN apt-get update && apt-get install -y ffmpeg libsm6 libxext6 git ninja-build 
     && rm -rf /var/lib/apt/lists/*
 
 
-WORKDIR isntall/
+WORKDIR install/
 COPY requirements.txt ./requirements.txt
 RUN pip install -r requirements.txt
