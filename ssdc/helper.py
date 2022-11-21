@@ -267,8 +267,8 @@ def save_checkpoint(state, is_best, epoch, output_directory: AnyPath):
         if prev_checkpoint_filename.exists():
             if not prev_checkpoint_filename.is_cloud_path:
                 os.remove(str(prev_checkpoint_filename))
-            else:
-                prev_checkpoint_filename.rm()
+            # else:
+                # prev_checkpoint_filename.rm()
 
 
 def get_folder_name(args):
