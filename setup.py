@@ -12,8 +12,8 @@ setup(
         "torchvision==0.14.0",
         "torchaudio==0.13.0",
         "paralleldomain @ git+https://github.com/parallel-domain/pd-sdk.git",
-        "opencv-contrib-python<=3.4.11.45",
-        "opencv-python<=3.4.11.45",
+        "opencv-contrib-python==3.4.11.45",
+        "opencv-python==3.4.11.45",
         "scikit-image",
     ],
     extras_require={
