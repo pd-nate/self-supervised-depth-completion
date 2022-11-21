@@ -22,7 +22,7 @@ from paralleldomain.utilities import fsio
 @dataclass
 class Args:
     workers: int = 4
-    epochs: int = 2
+    epochs: int = 11
     start_epoch: int = 0
     criterion: str = "l2"
     batch_size: int = 4
@@ -30,7 +30,7 @@ class Args:
     weight_decay: float = 0
     print_freq: int = 10
     resume: str = ""
-    data_folder: str = "s3://pd-internal-ml/nate/kitti/data_small/"
+    data_folder: str = "s3://pd-internal-ml/nate/kitti/data/"
     input: str = "rgbd"
     layers: int = 34
     pretrained: bool = False
@@ -40,7 +40,7 @@ class Args:
     train_mode: str = "dense+photo"
     evaluate: str = ""
     cpu: bool = False
-    output_dir: str = "s3://pd-internal-ml/nate/kitti/train1-221121"
+    output_dir: str = "s3://pd-internal-ml/nate/kitti/train-full-221121"
 
 
 # parser = argparse.ArgumentParser(description='Sparse-to-Dense')
