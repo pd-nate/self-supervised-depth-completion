@@ -21,11 +21,11 @@ from paralleldomain.utilities import fsio
 
 @dataclass
 class Args:
-    workers: int = 4
+    workers: int = 8
     epochs: int = 11
     start_epoch: int = 0
     criterion: str = "l2"
-    batch_size: int = 4
+    batch_size: int = 8
     lr: float = 1e-5
     weight_decay: float = 0
     print_freq: int = 10
