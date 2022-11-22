@@ -84,21 +84,28 @@ def get_pose_pnp(rgb_curr, rgb_near, depth_curr, K):
             pts3d_curr.append(xyz_curr)
             pts2d_near_filtered.append(pts2d_near[i])
 
-    # the minimal number of points accepted by solvePnP is 4:
-    if len(pts3d_curr) >= 6 and len(pts2d_near_filtered) >= 6:
-        pts3d_curr = np.expand_dims(np.array(pts3d_curr).astype(np.float32),
-                                    axis=1)
-        pts2d_near_filtered = np.expand_dims(
-            np.array(pts2d_near_filtered).astype(np.float32), axis=1)
+    try:
+        # the minimal number of points accepted by solvePnP is 4:
+        if len(pts3d_curr) >= 6 and len(pts2d_near_filtered) >= 6:
+            pts3d_curr = np.expand_dims(np.array(pts3d_curr).astype(np.float32),
+                                        axis=1)
+            pts2d_near_filtered = np.expand_dims(
+                np.array(pts2d_near_filtered).astype(np.float32), axis=1)
 
-        # ransac
-        ret = cv2.solvePnPRansac(pts3d_curr,
-                                 pts2d_near_filtered,
-                                 K,
-                                 distCoeffs=None)
-        success = ret[0]
-        rotation_vector = ret[1]
-        translation_vector = ret[2]
-        return (success, rotation_vector, translation_vector)
-    else:
+            # ransac
+            ret = cv2.solvePnPRansac(pts3d_curr,
+                                     pts2d_near_filtered,
+                                     K,
+                                     distCoeffs=None)
+            success = ret[0]
+            rotation_vector = ret[1]
+            translation_vector = ret[2]
+            return (success, rotation_vector, translation_vector)
+        else:
+            return (0, None, None)
+    except Exception as e:
+        print(e)
+        print("Issue with minimum number of RANSAC points")
+        print("Pts curr:", len(pts3d_curr))
+        print("Pts near:", len(pts2d_near_filtered))
         return (0, None, None)
