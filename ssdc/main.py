@@ -3,11 +3,13 @@ import os
 import sys
 import time
 from dataclasses import dataclass
+from io import BytesIO
 
 import torch
 import torch.nn.parallel
 import torch.optim
 import torch.utils.data
+from paralleldomain.utilities.any_path import AnyPath
 
 from ssdc.dataloaders.kitti_loader import load_calib, oheight, owidth, input_options, KittiDepth
 from ssdc.model import DepthCompletionNet
@@ -16,28 +18,26 @@ from ssdc import criteria
 from ssdc import helper
 from ssdc.inverse_warp import Intrinsics, homography_from
 
-from paralleldomain.utilities import fsio
-
 
 @dataclass
 class Args:
     workers: int = 4
     epochs: int = 11
-    start_epoch: int = 0
+    start_epoch: int = 5
     criterion: str = "l2"
     batch_size: int = 4
     lr: float = 1e-5
     weight_decay: float = 0
     print_freq: int = 10
-    resume: str = ""
+    resume: str = "s3://pd-internal-ml/nate/kitti/train-full-221121/mode=dense+photo.w1=0.1.w2=0.1.input=rgbd.resnet34.criterion=l2.lr=1e-05.bs=4.wd=0.pretrained=False.jitter=0.1.time=2022-11-22@03-02/checkpoint-4.pth.tar"
     data_folder: str = "s3://pd-internal-ml/nate/kitti/data/"
-    input: str = "d"
+    input: str = "rgbd"
     layers: int = 34
     pretrained: bool = False
     val: str = "full"
     jitter: float = 0.1
     rank_metric: str = "rmse"
-    train_mode: str = "dense"
+    train_mode: str = "dense+photo"
     evaluate: str = ""
     cpu: bool = False
     output_dir: str = "s3://pd-internal-ml/nate/kitti/train-full-d-221123"
@@ -344,9 +344,9 @@ def main():
             print("=> loading checkpoint '{}' ... ".format(args.evaluate),
                   end='')
             if eval_path.is_cloud_path:
-                with TemporaryDirectory() as temp_dir:
-                    chkpt_path = fsio.copy_file(eval_path, temp_dir)
-                    checkpoint = torch.load(str(chkpt_path), map_location=device)
+                with eval_path.open("rb") as f:
+                    stream = BytesIO(f.read())
+                checkpoint = torch.load(stream, map_location=device)
             else:
                 checkpoint = torch.load(args.evaluate, map_location=device)
             args = checkpoint['args']
@@ -364,9 +364,9 @@ def main():
             print("=> loading checkpoint '{}' ... ".format(args.resume),
                   end='')
             if resume_path.is_cloud_path:
-                with TemporaryDirectory() as temp_dir:
-                    chkpt_path = fsio.copy_file(resume_path, temp_dir)
-                    checkpoint = torch.load(chkpt_path, map_location=device)
+                with resume_path.open("rb") as f:
+                    stream = BytesIO(f.read())
+                checkpoint = torch.load(stream, map_location=device)
             else:
                 checkpoint = torch.load(args.resume, map_location=device)
             args.start_epoch = checkpoint['epoch'] + 1
