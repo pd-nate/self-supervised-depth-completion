@@ -25,22 +25,22 @@ class Args:
     epochs: int = 11
     start_epoch: int = 0
     criterion: str = "l2"
-    batch_size: int = 4
+    batch_size: int = 8
     lr: float = 1e-5
     weight_decay: float = 0
     print_freq: int = 10
     resume: str = ""
     data_folder: str = "s3://pd-internal-ml/nate/kitti/data/"
-    input: str = "rgbd"
+    input: str = "d"
     layers: int = 34
     pretrained: bool = False
     val: str = "full"
     jitter: float = 0.1
     rank_metric: str = "rmse"
-    train_mode: str = "dense+photo"
+    train_mode: str = "dense"
     evaluate: str = ""
     cpu: bool = False
-    output_dir: str = "s3://pd-internal-ml/nate/kitti/train-full-221121"
+    output_dir: str = "s3://pd-internal-ml/nate/kitti/train-full-d-221123"
 
 
 # parser = argparse.ArgumentParser(description='Sparse-to-Dense')
