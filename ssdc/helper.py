@@ -41,10 +41,10 @@ class logger:
             self.backup_directory = backup_directory
             backup_source_code(backup_directory)
             # create new csv files with only header
-            with self.train_csv.open('w') as csvfile:
+            with self.train_csv.open('w', newline='') as csvfile:
                 writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
                 writer.writeheader()
-            with self.val_csv.open('w') as csvfile:
+            with self.val_csv.open('w', newline='') as csvfile:
                 writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
                 writer.writeheader()
             print("=> finished creating source code backup.")
@@ -94,8 +94,12 @@ class logger:
             raise ValueError("wrong split provided to logger")
         with TemporaryDirectory() as temp_dir:
             temp_file = os.path.join(temp_dir, csvfile_name.name)
+            if not csvfile_name.exists():
+                with csvfile_name.open('w', newline='') as csvfile:
+                    writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
+                    writer.writeheader()
             fsio.copy_file(csvfile_name, AnyPath(temp_file))
-            with open(temp_file, "a") as csvfile:
+            with open(temp_file, "a", newline='') as csvfile:
                 writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
                 writer.writerow({
                     'epoch': epoch,

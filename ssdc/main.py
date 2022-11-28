@@ -29,6 +29,7 @@ class Args:
     lr: float = 1e-5
     weight_decay: float = 0
     print_freq: int = 10
+    # resume: str = ""
     resume: str = "s3://pd-internal-ml/nate/kitti/train-full-221121/mode=dense+photo.w1=0.1.w2=0.1.input=rgbd.resnet34.criterion=l2.lr=1e-05.bs=4.wd=0.pretrained=False.jitter=0.1.time=2022-11-22@03-02/checkpoint-4.pth.tar"
     data_folder: str = "s3://pd-internal-ml/nate/kitti/data/"
     input: str = "rgbd"
@@ -40,7 +41,7 @@ class Args:
     train_mode: str = "dense+photo"
     evaluate: str = ""
     cpu: bool = False
-    output_dir: str = "s3://pd-internal-ml/nate/kitti/train-full-d-221123"
+    output_dir: str = "s3://pd-internal-ml/nate/kitti/train-rgbd-resume-221128/"
 
 
 # parser = argparse.ArgumentParser(description='Sparse-to-Dense')
