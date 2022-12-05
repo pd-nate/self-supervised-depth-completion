@@ -38,10 +38,10 @@ class Args:
     val: str = "full"
     jitter: float = 0.1
     rank_metric: str = "rmse"
-    train_mode: str = "dense"
+    train_mode: str = "dense+photo"
     evaluate: str = ""
     cpu: bool = False
-    output_dir: str = "s3://pd-internal-ml/nate/kitti/train-rgb-dense-221201/"
+    output_dir: str = "s3://pd-internal-ml/nate/kitti/train-rgb-dense-photo-221205/"
 
 
 # parser = argparse.ArgumentParser(description='Sparse-to-Dense')
