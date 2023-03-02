@@ -125,7 +125,7 @@ def rgb_read(filename: AnyPath) -> np.array:
     with filename.open(mode="rb") as fp:
         img_file = Image.open(BytesIO(fp.read()))
     # rgb_png = np.array(img_file, dtype=float) / 255.0 # scale pixels to the range [0,1]
-    rgb_png = np.array(img_file, dtype='uint8')  # in the range [0,255]
+    rgb_png = np.array(img_file, dtype='uint8')[..., :3]  # in the range [0,255]
     img_file.close()
     return rgb_png
 

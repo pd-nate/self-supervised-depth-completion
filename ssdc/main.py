@@ -22,7 +22,7 @@ from ssdc.inverse_warp import Intrinsics, homography_from
 @dataclass
 class Args:
     workers: int = 4
-    epochs: int = 11
+    epochs: int = 5
     start_epoch: int = 0
     criterion: str = "l2"
     batch_size: int = 4
@@ -31,17 +31,17 @@ class Args:
     print_freq: int = 10
     resume: str = ""
     # resume: str = "s3://pd-internal-ml/nate/kitti/train-rgbd-dense-photo-221128/mode=dense+photo.w1=0.1.w2=0.1.input=rgbd.resnet34.criterion=l2.lr=1e-05.bs=4.wd=0.pretrained=False.jitter=0.1.time=2022-11-29@07-20/checkpoint-5.pth.tar"
-    data_folder: str = "s3://pd-internal-ml/nate/kitti/data/"
-    input: str = "rgb"
+    data_folder: str = "s3://pd-internal-ml/nate/kitti/data_synth/"
+    input: str = "rgbd"
     layers: int = 34
     pretrained: bool = False
     val: str = "full"
     jitter: float = 0.1
     rank_metric: str = "rmse"
-    train_mode: str = "dense+photo"
+    train_mode: str = "dense"
     evaluate: str = ""
     cpu: bool = False
-    output_dir: str = "s3://pd-internal-ml/nate/kitti/train-rgb-dense-photo-221205/"
+    output_dir: str = "s3://pd-internal-ml/nate/kitti/train-rgbd-dense-230302/"
 
 
 # parser = argparse.ArgumentParser(description='Sparse-to-Dense')
